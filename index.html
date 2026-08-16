@@ -101,7 +101,30 @@
 </div>
 
 <script>
-  const TEAMS = ["Alavés", "Athletic Club", "Atlético de Madrid", "Barcelona", "Betis", "Celta", "Espanyol", "Getafe", "Girona", "Las Palmas", "Mallorca", "Osasuna", "Rayo Vallecano", "Real Madrid", "Real Sociedad", "Sevilla", "Valencia", "Villarreal"];
+  // Lista actualizada según la tabla enviada
+  const TEAMS = [
+    "Alavés",
+    "Sevilla",
+    "Villarreal",
+    "R. Racing Club",
+    "Real Sociedad",
+    "Elche",
+    "Celta de Vigo",
+    "Málaga",
+    "Real Madrid",
+    "Barcelona",
+    "Atlético de Madrid",
+    "Deportivo de La Coruña",
+    "Valencia",
+    "Athletic Club",
+    "Espanyol",
+    "Real Betis",
+    "Osasuna",
+    "Levante",
+    "Rayo Vallecano",
+    "Getafe"
+  ];
+
   let matches = JSON.parse(localStorage.getItem("pronosticos_data") || "[]");
 
   function init() {
