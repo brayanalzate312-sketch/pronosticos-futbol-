@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Motor de Pronósticos Deportivos</title>
+  <title>Motor de Pronósticos Deportivos Multiliga</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
     body { background-color: #f0f9ff; color: #0f172a; padding: 20px; display: flex; justify-content: center; }
@@ -11,17 +11,30 @@
     header { margin-bottom: 20px; border-bottom: 1px solid #e0f2fe; padding-bottom: 12px; }
     h1 { font-size: 1.5rem; color: #0369a1; }
     p.sub { font-size: 0.85rem; color: #0284c7; margin-top: 4px; }
+    
+    .league-selector { background: #e0f2fe; padding: 12px; border-radius: 10px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; }
+    .league-selector label { font-size: 0.8rem; font-weight: bold; color: #0369a1; white-space: nowrap; }
+    .league-selector select { font-weight: bold; color: #0369a1; border-color: #7dd3fc; }
+
     .nav { display: flex; gap: 12px; border-bottom: 1px solid #e0f2fe; margin-bottom: 20px; }
     .nav button { padding: 8px 16px; font-weight: 600; font-size: 0.9rem; border: none; background: none; cursor: pointer; color: #94a3b8; border-bottom: 2px solid transparent; }
     .nav button.active { color: #0284c7; border-bottom-color: #0284c7; }
+    
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
     label { font-size: 0.75rem; font-weight: bold; color: #0369a1; text-transform: uppercase; display: block; margin-bottom: 4px; }
-    select, input { width: 100%; padding: 10px; border: 1px solid #bae6fd; background-color: #f0f9ff; border-radius: 8px; font-size: 0.9rem; margin-bottom: 8px; }
+    .field-group { margin-bottom: 10px; }
+    .field-group label { font-size: 0.7rem; color: #0284c7; margin-bottom: 2px; }
+    select, input { width: 100%; padding: 10px; border: 1px solid #bae6fd; background-color: #f0f9ff; border-radius: 8px; font-size: 0.9rem; }
+    
     .card { background-color: #f0f9ff; border: 1px solid #bae6fd; padding: 16px; border-radius: 12px; margin-top: 16px; }
-    .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-top: 12px; }
-    .metric-box { background: white; padding: 12px; border-radius: 8px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
-    .metric-val { font-size: 1.4rem; font-weight: bold; color: #0284c7; }
-    .metric-lbl { font-size: 0.75rem; color: #64748b; }
+    
+    /* Nueva tabla de métricas comparativas */
+    .forecast-table { width: 100%; border-collapse: collapse; margin-top: 12px; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+    .forecast-table th { background: #bae6fd; color: #0369a1; padding: 10px; font-size: 0.85rem; text-align: center; }
+    .forecast-table td { padding: 10px; border-bottom: 1px solid #f0f9ff; font-size: 0.9rem; text-align: center; }
+    .forecast-table td.metric-name { font-weight: 600; color: #475569; text-align: center; background: #f8fafc; }
+    .val-team { font-size: 1.1rem; font-weight: bold; color: #0284c7; }
+
     .btn-submit { width: 100%; background: #0284c7; color: white; font-weight: bold; padding: 12px; border: none; border-radius: 8px; cursor: pointer; margin-top: 12px; }
     .btn-submit:hover { background: #0369a1; }
     .match-item { font-size: 0.8rem; background: #f8fafc; padding: 8px 12px; border-radius: 6px; margin-bottom: 6px; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; }
@@ -33,8 +46,18 @@
 <div class="container">
   <header>
     <h1>⚡ Motor de Pronósticos Deportivos</h1>
-    <p class="sub">Registra estadísticas reales de partidos para calcular proyecciones automáticas.</p>
+    <p class="sub">Registra estadísticas de partidos por liga para calcular proyecciones automáticas.</p>
   </header>
+
+  <!-- SELECCIÓN DE LIGA -->
+  <div class="league-selector">
+    <label for="leagueSelect">🏆 LIGA SELECCIONADA:</label>
+    <select id="leagueSelect" onchange="changeLeague()">
+      <option value="laliga">🇪🇸 LaLiga</option>
+      <option value="bundesliga">🇩🇪 Bundesliga</option>
+      <option value="brasileirao">🇧🇷 Brasileirão</option>
+    </select>
+  </div>
 
   <div class="nav">
     <button id="btnTab1" class="active" onclick="switchTab('pronostico')">🎯 Generar Pronóstico</button>
@@ -72,20 +95,53 @@
 
       <div class="grid-2" style="background:#f0f9ff; padding:12px; border-radius:8px;">
         <div>
-          <strong style="font-size:0.85rem; color:#0369a1; display:block; margin-bottom:8px;">Estadísticas Local</strong>
-          <input type="number" id="hGoals" placeholder="Goles" value="3" required>
-          <input type="number" id="hShots" placeholder="Remates Totales" value="18" required>
-          <input type="number" id="hSot" placeholder="Remates a Puerta" value="8" required>
-          <input type="number" id="hCorners" placeholder="Córners" value="5" required>
-          <input type="number" id="hPoss" placeholder="% Posesión" value="52" required>
+          <strong style="font-size:0.85rem; color:#0369a1; display:block; margin-bottom:12px;">Estadísticas Local</strong>
+          
+          <div class="field-group">
+            <label>Goles</label>
+            <input type="number" id="hGoals" value="3" required>
+          </div>
+          <div class="field-group">
+            <label>Remates Totales</label>
+            <input type="number" id="hShots" value="18" required>
+          </div>
+          <div class="field-group">
+            <label>Remates a Puerta</label>
+            <input type="number" id="hSot" value="8" required>
+          </div>
+          <div class="field-group">
+            <label>Córners</label>
+            <input type="number" id="hCorners" value="5" required>
+          </div>
+          <div class="field-group">
+            <label>% Posesión</label>
+            <input type="number" id="hPoss" value="52" required>
+          </div>
         </div>
+
         <div>
-          <strong style="font-size:0.85rem; color:#0369a1; display:block; margin-bottom:8px;">Estadísticas Visitante</strong>
-          <input type="number" id="aGoals" placeholder="Goles" value="0" required>
-          <input type="number" id="aShots" placeholder="Remates Totales" value="6" required>
-          <input type="number" id="aSot" placeholder="Remates a Puerta" value="2" required>
-          <input type="number" id="aCorners" placeholder="Córners" value="3" required>
-          <input type="number" id="aPoss" placeholder="% Posesión" value="48" required>
+          <strong style="font-size:0.85rem; color:#0369a1; display:block; margin-bottom:12px;">Estadísticas Visitante</strong>
+          
+          <div class="field-group">
+            <label>Goles</label>
+            <input type="number" id="aGoals" value="0" required>
+          </div>
+          <div class="field-group">
+            <label>Remates Totales</label>
+            <input type="number" id="aShots" value="6" required>
+          </div>
+          <div class="field-group">
+            <label>Remates a Puerta</label>
+            <input type="number" id="aSot" value="2" required>
+          </div>
+          <div class="field-group">
+            <label>Córners</label>
+            <input type="number" id="aCorners" value="3" required>
+          </div>
+          <div class="field-group">
+            <label>% Posesión</label>
+            <input type="number" id="aPoss" value="48" required>
+          </div>
         </div>
       </div>
 
@@ -95,48 +151,62 @@
 
   <!-- HISTORIAL -->
   <div style="margin-top:24px; border-top:1px solid #e0f2fe; padding-top:12px;">
-    <label>Partidos Guardados (<span id="matchCount">0</span>)</label>
+    <label>Partidos Guardados en esta Liga (<span id="matchCount">0</span>)</label>
     <div id="matchList" style="max-height:150px; overflow-y:auto; margin-top:8px;"></div>
   </div>
 </div>
 
 <script>
-  // Lista actualizada según la tabla enviada
-  const TEAMS = [
-    "Alavés",
-    "Sevilla",
-    "Villarreal",
-    "R. Racing Club",
-    "Real Sociedad",
-    "Elche",
-    "Celta de Vigo",
-    "Málaga",
-    "Real Madrid",
-    "Barcelona",
-    "Atlético de Madrid",
-    "Deportivo de La Coruña",
-    "Valencia",
-    "Athletic Club",
-    "Espanyol",
-    "Real Betis",
-    "Osasuna",
-    "Levante",
-    "Rayo Vallecano",
-    "Getafe"
-  ];
+  const LEAGUES_DATA = {
+    laliga: [
+      "Alavés", "Sevilla", "Villarreal", "R. Racing Club", "Real Sociedad", 
+      "Elche", "Celta de Vigo", "Málaga", "Real Madrid", "Barcelona", 
+      "Atlético de Madrid", "Deportivo de La Coruña", "Valencia", "Athletic Club", 
+      "Espanyol", "Real Betis", "Osasuna", "Levante", "Rayo Vallecano", "Getafe"
+    ],
+    bundesliga: [
+      "Colonia", "Leverkusen", "Bayern", "Dortmund", "Mönchengladbach", 
+      "Frankfurt", "Augsburgo", "Mainz 05", "Hamburg", "RB Leipzig", 
+      "Friburgo", "Paderborn", "Schalke 04", "SV Elversberg", "Hoffenheim", 
+      "FC Union Berlin", "Stuttgart", "Werder Bremen"
+    ],
+    brasileirao: [
+      "Palmeiras", "Flamengo", "Paranaense", "Fluminense", "Bahía", 
+      "Cruzeiro", "Bragantino", "Corinthians", "Coritiba", "Botafogo", 
+      "Atlético Mineiro", "São Paulo", "Vitória", "Grêmio", "Mirassol", 
+      "Internacional", "Santos", "Vasco da Gama", "Remo", "Chapecoense"
+    ]
+  };
 
-  let matches = JSON.parse(localStorage.getItem("pronosticos_data") || "[]");
+  let currentLeague = "laliga";
+  let matches = JSON.parse(localStorage.getItem("pronosticos_data_v2") || "[]");
 
   function init() {
-    const selects = ["fLocal", "fVisit", "formHome", "formAway"];
-    selects.forEach(id => {
-      const el = document.getElementById(id);
-      el.innerHTML = TEAMS.map(t => `<option value="${t}">${t}</option>`).join("");
-    });
-    document.getElementById("fVisit").value = "Getafe";
-    document.getElementById("formAway").value = "Getafe";
+    updateTeamSelects();
     renderHistory();
     calcForecast();
+  }
+
+  function changeLeague() {
+    currentLeague = document.getElementById("leagueSelect").value;
+    updateTeamSelects();
+    renderHistory();
+    calcForecast();
+  }
+
+  function updateTeamSelects() {
+    const teams = LEAGUES_DATA[currentLeague];
+    const selects = ["fLocal", "fVisit", "formHome", "formAway"];
+    
+    selects.forEach(id => {
+      const el = document.getElementById(id);
+      el.innerHTML = teams.map(t => `<option value="${t}">${t}</option>`).join("");
+    });
+
+    if (teams.length > 1) {
+      document.getElementById("fVisit").value = teams[1];
+      document.getElementById("formAway").value = teams[1];
+    }
   }
 
   function switchTab(tab) {
@@ -153,6 +223,7 @@
     if (home === away) return alert("Selecciona dos equipos diferentes.");
 
     const match = {
+      league: currentLeague,
       home, away,
       hGoals: +document.getElementById("hGoals").value,
       hShots: +document.getElementById("hShots").value,
@@ -167,20 +238,23 @@
     };
 
     matches.unshift(match);
-    localStorage.setItem("pronosticos_data", JSON.stringify(matches));
+    localStorage.setItem("pronosticos_data_v2", JSON.stringify(matches));
     renderHistory();
     calcForecast();
     alert("¡Partido registrado con éxito!");
   }
 
   function renderHistory() {
-    document.getElementById("matchCount").innerText = matches.length;
+    const leagueMatches = matches.filter(m => m.league === currentLeague);
+    document.getElementById("matchCount").innerText = leagueMatches.length;
     const list = document.getElementById("matchList");
-    if (!matches.length) {
-      list.innerHTML = "<p style='font-size:0.8rem; color:#94a3b8;'>No hay partidos registrados aún.</p>";
+    
+    if (!leagueMatches.length) {
+      list.innerHTML = "<p style='font-size:0.8rem; color:#94a3b8;'>No hay partidos registrados en esta liga aún.</p>";
       return;
     }
-    list.innerHTML = matches.map(m => `
+    
+    list.innerHTML = leagueMatches.map(m => `
       <div class="match-item">
         <span><b>${m.home}</b> ${m.hGoals} - ${m.aGoals} <b>${m.away}</b></span>
         <span>Rem: ${m.hShots}-${m.aShots} | Córners: ${m.hCorners}-${m.aCorners}</span>
@@ -193,39 +267,75 @@
     const fVisit = document.getElementById("fVisit").value;
     const res = document.getElementById("forecastResults");
 
-    const homeM = matches.filter(m => m.home === fLocal);
-    const awayM = matches.filter(m => m.away === fVisit);
+    const leagueMatches = matches.filter(m => m.league === currentLeague);
+    
+    // Partidos donde el equipo seleccionado jugó de Local o Visitante
+    const homeM = leagueMatches.filter(m => m.home === fLocal);
+    const awayM = leagueMatches.filter(m => m.away === fVisit);
 
-    if (!homeM.length || !awayM.length) {
+    if (!homeM.length && !awayM.length) {
       res.innerHTML = `
         <div class="alert">
-          Falta información. Ingresa al menos 1 partido de <b>${fLocal}</b> como Local y 1 de <b>${fVisit}</b> como Visitante en la pestaña "Registrar Partido Manual".
+          Falta información. Ingresa al menos 1 partido registrado de <b>${fLocal}</b> o de <b>${fVisit}</b> en esta liga.
         </div>`;
       return;
     }
 
-    const avgShotsL = homeM.reduce((a, b) => a + b.hShots, 0) / homeM.length;
-    const avgSotL = homeM.reduce((a, b) => a + b.hSot, 0) / homeM.length;
-    const avgCornL = homeM.reduce((a, b) => a + b.hCorners, 0) / homeM.length;
-    const avgPossL = homeM.reduce((a, b) => a + b.hPoss, 0) / homeM.length;
+    // Promedios Local (si no hay datos, da 0)
+    const expGoalsL = homeM.length ? (homeM.reduce((a, b) => a + b.hGoals, 0) / homeM.length).toFixed(1) : "-";
+    const expShotsL = homeM.length ? (homeM.reduce((a, b) => a + b.hShots, 0) / homeM.length).toFixed(1) : "-";
+    const expSotL = homeM.length ? (homeM.reduce((a, b) => a + b.hSot, 0) / homeM.length).toFixed(1) : "-";
+    const expCornL = homeM.length ? (homeM.reduce((a, b) => a + b.hCorners, 0) / homeM.length).toFixed(1) : "-";
+    const expPossL = homeM.length ? (homeM.reduce((a, b) => a + b.hPoss, 0) / homeM.length).toFixed(0) + "%" : "-";
 
-    const avgShotsConcededV = awayM.reduce((a, b) => a + b.hShots, 0) / awayM.length;
-    const avgSotConcededV = awayM.reduce((a, b) => a + b.hSot, 0) / awayM.length;
-    const avgCornConcededV = awayM.reduce((a, b) => a + b.hCorners, 0) / awayM.length;
-
-    const expShots = ((avgShotsL + avgShotsConcededV) / 2).toFixed(1);
-    const expSot = ((avgSotL + avgSotConcededV) / 2).toFixed(1);
-    const expCorners = ((avgCornL + avgCornConcededV) / 2).toFixed(1);
+    // Promedios Visitante (si no hay datos, da 0)
+    const expGoalsV = awayM.length ? (awayM.reduce((a, b) => a + b.aGoals, 0) / awayM.length).toFixed(1) : "-";
+    const expShotsV = awayM.length ? (awayM.reduce((a, b) => a + b.aShots, 0) / awayM.length).toFixed(1) : "-";
+    const expSotV = awayM.length ? (awayM.reduce((a, b) => a + b.aSot, 0) / awayM.length).toFixed(1) : "-";
+    const expCornV = awayM.length ? (awayM.reduce((a, b) => a + b.aCorners, 0) / awayM.length).toFixed(1) : "-";
+    const expPossV = awayM.length ? (awayM.reduce((a, b) => a + b.aPoss, 0) / awayM.length).toFixed(0) + "%" : "-";
 
     res.innerHTML = `
       <div class="card">
-        <h3 style="color:#0369a1; font-size:1rem; border-bottom:1px solid #bae6fd; padding-bottom:6px;">Proyección para ${fLocal} vs ${fVisit}</h3>
-        <div class="metrics">
-          <div class="metric-box"><div class="metric-val">${expShots}</div><div class="metric-lbl">Remates Totales</div></div>
-          <div class="metric-box"><div class="metric-val">${expSot}</div><div class="metric-lbl">Remates a Puerta</div></div>
-          <div class="metric-box"><div class="metric-val">${expCorners}</div><div class="metric-lbl">Córners Estimados</div></div>
-          <div class="metric-box"><div class="metric-val">${avgPossL.toFixed(0)}%</div><div class="metric-lbl">Posesión Estimada</div></div>
-        </div>
+        <h3 style="color:#0369a1; font-size:1rem; border-bottom:1px solid #bae6fd; padding-bottom:6px;">
+          Proyección: ${fLocal} vs ${fVisit}
+        </h3>
+        <table class="forecast-table">
+          <thead>
+            <tr>
+              <th style="width: 35%;">${fLocal} (Local)</th>
+              <th style="width: 30%;">Métrica</th>
+              <th style="width: 35%;">${fVisit} (Visitante)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="val-team">${expGoalsL}</td>
+              <td class="metric-name">Goles Esperados</td>
+              <td class="val-team">${expGoalsV}</td>
+            </tr>
+            <tr>
+              <td class="val-team">${expShotsL}</td>
+              <td class="metric-name">Remates Totales</td>
+              <td class="val-team">${expShotsV}</td>
+            </tr>
+            <tr>
+              <td class="val-team">${expSotL}</td>
+              <td class="metric-name">Remates a Puerta</td>
+              <td class="val-team">${expSotV}</td>
+            </tr>
+            <tr>
+              <td class="val-team">${expCornL}</td>
+              <td class="metric-name">Córners Estimados</td>
+              <td class="val-team">${expCornV}</td>
+            </tr>
+            <tr>
+              <td class="val-team">${expPossL}</td>
+              <td class="metric-name">Posesión Estimada</td>
+              <td class="val-team">${expPossV}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>`;
   }
 
