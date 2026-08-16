@@ -16,9 +16,7 @@
     .nav button.active { color: #0284c7; border-bottom-color: #0284c7; }
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
     label { font-size: 0.75rem; font-weight: bold; color: #0369a1; text-transform: uppercase; display: block; margin-bottom: 4px; }
-    .field-group { margin-bottom: 10px; }
-    .field-group label { font-size: 0.7rem; color: #0284c7; margin-bottom: 2px; }
-    select, input { width: 100%; padding: 10px; border: 1px solid #bae6fd; background-color: #f0f9ff; border-radius: 8px; font-size: 0.9rem; }
+    select, input { width: 100%; padding: 10px; border: 1px solid #bae6fd; background-color: #f0f9ff; border-radius: 8px; font-size: 0.9rem; margin-bottom: 8px; }
     .card { background-color: #f0f9ff; border: 1px solid #bae6fd; padding: 16px; border-radius: 12px; margin-top: 16px; }
     .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-top: 12px; }
     .metric-box { background: white; padding: 12px; border-radius: 8px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
@@ -74,53 +72,20 @@
 
       <div class="grid-2" style="background:#f0f9ff; padding:12px; border-radius:8px;">
         <div>
-          <strong style="font-size:0.85rem; color:#0369a1; display:block; margin-bottom:12px;">Estadísticas Local</strong>
-          
-          <div class="field-group">
-            <label>Goles</label>
-            <input type="number" id="hGoals" value="3" required>
-          </div>
-          <div class="field-group">
-            <label>Remates Totales</label>
-            <input type="number" id="hShots" value="18" required>
-          </div>
-          <div class="field-group">
-            <label>Remates a Puerta</label>
-            <input type="number" id="hSot" value="8" required>
-          </div>
-          <div class="field-group">
-            <label>Córners</label>
-            <input type="number" id="hCorners" value="5" required>
-          </div>
-          <div class="field-group">
-            <label>% Posesión</label>
-            <input type="number" id="hPoss" value="52" required>
-          </div>
+          <strong style="font-size:0.85rem; color:#0369a1; display:block; margin-bottom:8px;">Estadísticas Local</strong>
+          <input type="number" id="hGoals" placeholder="Goles" value="3" required>
+          <input type="number" id="hShots" placeholder="Remates Totales" value="18" required>
+          <input type="number" id="hSot" placeholder="Remates a Puerta" value="8" required>
+          <input type="number" id="hCorners" placeholder="Córners" value="5" required>
+          <input type="number" id="hPoss" placeholder="% Posesión" value="52" required>
         </div>
-
         <div>
-          <strong style="font-size:0.85rem; color:#0369a1; display:block; margin-bottom:12px;">Estadísticas Visitante</strong>
-          
-          <div class="field-group">
-            <label>Goles</label>
-            <input type="number" id="aGoals" value="0" required>
-          </div>
-          <div class="field-group">
-            <label>Remates Totales</label>
-            <input type="number" id="aShots" value="6" required>
-          </div>
-          <div class="field-group">
-            <label>Remates a Puerta</label>
-            <input type="number" id="aSot" value="2" required>
-          </div>
-          <div class="field-group">
-            <label>Córners</label>
-            <input type="number" id="aCorners" value="3" required>
-          </div>
-          <div class="field-group">
-            <label>% Posesión</label>
-            <input type="number" id="aPoss" value="48" required>
-          </div>
+          <strong style="font-size:0.85rem; color:#0369a1; display:block; margin-bottom:8px;">Estadísticas Visitante</strong>
+          <input type="number" id="aGoals" placeholder="Goles" value="0" required>
+          <input type="number" id="aShots" placeholder="Remates Totales" value="6" required>
+          <input type="number" id="aSot" placeholder="Remates a Puerta" value="2" required>
+          <input type="number" id="aCorners" placeholder="Córners" value="3" required>
+          <input type="number" id="aPoss" placeholder="% Posesión" value="48" required>
         </div>
       </div>
 
@@ -136,6 +101,7 @@
 </div>
 
 <script>
+  // Lista actualizada según la tabla enviada
   const TEAMS = [
     "Alavés",
     "Sevilla",
