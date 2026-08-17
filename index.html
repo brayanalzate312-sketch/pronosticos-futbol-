@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Motor de Pronósticos Deportivos - Simulación Dinámica</title>
+  <title>Motor de Pronósticos Deportivos - Rangos y Margen de Error</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
     body { background-color: #f0f9ff; color: #0f172a; padding: 20px; display: flex; justify-content: center; }
@@ -32,9 +32,11 @@
     .forecast-table th { background: #bae6fd; color: #0369a1; padding: 10px; font-size: 0.85rem; text-align: center; }
     .forecast-table td { padding: 10px; border-bottom: 1px solid #f0f9ff; font-size: 0.9rem; text-align: center; }
     .forecast-table td.metric-name { font-weight: 600; color: #475569; text-align: center; background: #f8fafc; }
-    .val-team { font-size: 1.1rem; font-weight: bold; color: #0284c7; }
+    .val-team { font-size: 1.05rem; font-weight: bold; color: #0284c7; }
+    .range-sub { font-size: 0.72rem; color: #64748b; font-weight: normal; display: block; margin-top: 2px; }
 
-    .summary-box { background: #ffffff; border-left: 4px solid #0284c7; padding: 12px; margin-top: 14px; border-radius: 4px; font-size: 0.85rem; color: #334155; line-height: 1.4; }
+    .summary-box { background: #ffffff; border-left: 4px solid #0284c7; padding: 12px; margin-top: 14px; border-radius: 4px; font-size: 0.85rem; color: #334155; line-height: 1.5; }
+    .badge-error { display: inline-block; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 0.75rem; background: #e0f2fe; color: #0369a1; }
 
     .btn-submit { width: 100%; background: #0284c7; color: white; font-weight: bold; padding: 12px; border: none; border-radius: 8px; cursor: pointer; margin-top: 12px; }
     .btn-submit:hover { background: #0369a1; }
@@ -54,7 +56,7 @@
 <div class="container">
   <header>
     <h1>⚡ Motor de Pronósticos Deportivos</h1>
-    <p class="sub">Simulación de partidos con interacción mutua de estadísticas.</p>
+    <p class="sub">Simulación avanzada con intervalos Mín/Máx y Margen de Error.</p>
   </header>
 
   <!-- SELECCIÓN DE LIGA -->
@@ -340,6 +342,21 @@
     `).join("");
   }
 
+  // Función de apoyo para calcular rangos Mín - Máx
+  function getRange(val, factor = 0.25, isInteger = false) {
+    const num = parseFloat(val);
+    let min = Math.max(0, num - num * factor);
+    let max = num + num * factor;
+    if (isInteger) {
+      min = Math.floor(min);
+      max = Math.ceil(max);
+    } else {
+      min = min.toFixed(1);
+      max = max.toFixed(1);
+    }
+    return `[Mín: ${min} - Máx: ${max}]`;
+  }
+
   function calcForecast() {
     const fLocal = document.getElementById("fLocal").value;
     const fVisit = document.getElementById("fVisit").value;
@@ -351,8 +368,6 @@
     }
 
     const leagueMatches = matches.filter(m => m.league === currentLeague);
-    
-    // Partidos registrados del Local (como local) y del Visitante (como visitante)
     const homeMatches = leagueMatches.filter(m => m.home === fLocal);
     const awayMatches = leagueMatches.filter(m => m.away === fVisit);
 
@@ -384,17 +399,16 @@
     const avgAwayCornersConceded = awayMatches.reduce((a, b) => a + b.hCorners, 0) / awayMatches.length;
     const avgAwayPoss = awayMatches.reduce((a, b) => a + b.aPoss, 0) / awayMatches.length;
 
-    // --- SIMULACIÓN 1: POSESIÓN DINÁMICA DE BALÓN (Total suma 100%) ---
+    // 1. Posesión Dinámica
     const totalPossFactor = avgHomePoss + avgAwayPoss;
     const simHomePoss = Math.round((avgHomePoss / totalPossFactor) * 100);
     const simAwayPoss = 100 - simHomePoss;
 
-    // --- SIMULACIÓN 2: GOLES ESPERADOS (xG Cruzados Ataque/Defensa) ---
+    // 2. Goles Esperados (xG)
     const simHomeGoals = ((avgHomeGoalsScored + avgAwayGoalsConceded) / 2).toFixed(1);
     const simAwayGoals = ((avgAwayGoalsScored + avgHomeGoalsConceded) / 2).toFixed(1);
 
-    // --- SIMULACIÓN 3: REMATES Y CÓRNERS INTERACTIVOS ---
-    // Ajustados combinando producción propia, lo que el rival concede y la posesión estimada
+    // 3. Remates y Córners
     const homeShotRatio = simHomePoss / 50;
     const awayShotRatio = simAwayPoss / 50;
 
@@ -407,10 +421,19 @@
     const simHomeCorners = (((avgHomeCorners + avgAwayCornersConceded) / 2) * homeShotRatio).toFixed(1);
     const simAwayCorners = (((avgAwayCorners + avgHomeCornersConceded) / 2) * awayShotRatio).toFixed(1);
 
+    // 4. CÁLCULO DE MARGEN DE ERROR DEL PRONÓSTICO
+    const totalSample = homeMatches.length + awayMatches.length;
+    // Con 2 partidos de muestra = ~25% de error; con 10+ partidos = ~6-8% de error
+    const marginOfError = Math.max(5, Math.round(35 / Math.sqrt(totalSample))).toFixed(0);
+
+    const totalMatchShots = (parseFloat(simHomeShots) + parseFloat(simAwayShots)).toFixed(1);
+    const totalMatchCorners = (parseFloat(simHomeCorners) + parseFloat(simAwayCorners)).toFixed(1);
+
     res.innerHTML = `
       <div class="card">
-        <h3 style="color:#0369a1; font-size:1rem; border-bottom:1px solid #bae6fd; padding-bottom:6px;">
-          🎮 Simulación del Partido: ${fLocal} vs ${fVisit}
+        <h3 style="color:#0369a1; font-size:1rem; border-bottom:1px solid #bae6fd; padding-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
+          <span>🎮 Simulación: ${fLocal} vs ${fVisit}</span>
+          <span class="badge-error">Error est.: ±${marginOfError}%</span>
         </h3>
         <table class="forecast-table">
           <thead>
@@ -422,24 +445,24 @@
           </thead>
           <tbody>
             <tr>
-              <td class="val-team">${simHomeGoals}</td>
+              <td class="val-team">${simHomeGoals}<span class="range-sub">${getRange(simHomeGoals, 0.35, true)}</span></td>
               <td class="metric-name">Goles Esperados (xG)</td>
-              <td class="val-team">${simAwayGoals}</td>
+              <td class="val-team">${simAwayGoals}<span class="range-sub">${getRange(simAwayGoals, 0.35, true)}</span></td>
             </tr>
             <tr>
-              <td class="val-team">${simHomeShots}</td>
+              <td class="val-team">${simHomeShots}<span class="range-sub">${getRange(simHomeShots, 0.20)}</span></td>
               <td class="metric-name">Remates Totales</td>
-              <td class="val-team">${simAwayShots}</td>
+              <td class="val-team">${simAwayShots}<span class="range-sub">${getRange(simAwayShots, 0.20)}</span></td>
             </tr>
             <tr>
-              <td class="val-team">${simHomeSot}</td>
+              <td class="val-team">${simHomeSot}<span class="range-sub">${getRange(simHomeSot, 0.25)}</span></td>
               <td class="metric-name">Remates a Puerta</td>
-              <td class="val-team">${simAwaySot}</td>
+              <td class="val-team">${simAwaySot}<span class="range-sub">${getRange(simAwaySot, 0.25)}</span></td>
             </tr>
             <tr>
-              <td class="val-team">${simHomeCorners}</td>
+              <td class="val-team">${simHomeCorners}<span class="range-sub">${getRange(simHomeCorners, 0.25, true)}</span></td>
               <td class="metric-name">Córners Estimados</td>
-              <td class="val-team">${simAwayCorners}</td>
+              <td class="val-team">${simAwayCorners}<span class="range-sub">${getRange(simAwayCorners, 0.25, true)}</span></td>
             </tr>
             <tr>
               <td class="val-team">${simHomePoss}%</td>
@@ -450,9 +473,11 @@
         </table>
 
         <div class="summary-box">
-          <b>📊 Análisis del Partido:</b><br>
-          En este enfrentamiento, la simulación asigna un <b>${simHomePoss}%</b> de posesión a ${fLocal} y un <b>${simAwayPoss}%</b> a ${fVisit}.<br>
-          Debido al cruce defensivo y ofensivo de ambos, se proyecta un partido con <b>${(parseFloat(simHomeShots) + parseFloat(simAwayShots)).toFixed(1)}</b> remates en total y una expectativa de <b>${simHomeGoals} - ${simAwayGoals}</b> en el marcador.
+          <b>📊 Orientación e Intervalos Generales del Partido:</b><br>
+          • <b>Margen de error del modelo:</b> ±${marginOfError}% <i>(Basado en ${totalSample} partido(s) analizados).</i><br>
+          • <b>Remates Totales en el Partido:</b> Est. ${totalMatchShots} ${getRange(totalMatchShots, 0.18)}<br>
+          • <b>Córners Totales en el Partido:</b> Est. ${totalMatchCorners} ${getRange(totalMatchCorners, 0.22, true)}<br>
+          • <b>Expectativa de Marcador:</b> Entre ${getRange(simHomeGoals, 0.3, true)} y ${getRange(simAwayGoals, 0.3, true)} goles.
         </div>
       </div>`;
   }
@@ -460,4 +485,4 @@
   init();
 </script>
 </body>
-</html> 
+</html>
