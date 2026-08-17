@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Motor de Pronósticos Deportivos Multiliga</title>
+  <title>Motor de Pronósticos Deportivos - Simulación Dinámica</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
     body { background-color: #f0f9ff; color: #0f172a; padding: 20px; display: flex; justify-content: center; }
@@ -28,16 +28,24 @@
     
     .card { background-color: #f0f9ff; border: 1px solid #bae6fd; padding: 16px; border-radius: 12px; margin-top: 16px; }
     
-    /* Nueva tabla de métricas comparativas */
     .forecast-table { width: 100%; border-collapse: collapse; margin-top: 12px; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
     .forecast-table th { background: #bae6fd; color: #0369a1; padding: 10px; font-size: 0.85rem; text-align: center; }
     .forecast-table td { padding: 10px; border-bottom: 1px solid #f0f9ff; font-size: 0.9rem; text-align: center; }
     .forecast-table td.metric-name { font-weight: 600; color: #475569; text-align: center; background: #f8fafc; }
     .val-team { font-size: 1.1rem; font-weight: bold; color: #0284c7; }
 
+    .summary-box { background: #ffffff; border-left: 4px solid #0284c7; padding: 12px; margin-top: 14px; border-radius: 4px; font-size: 0.85rem; color: #334155; line-height: 1.4; }
+
     .btn-submit { width: 100%; background: #0284c7; color: white; font-weight: bold; padding: 12px; border: none; border-radius: 8px; cursor: pointer; margin-top: 12px; }
     .btn-submit:hover { background: #0369a1; }
-    .match-item { font-size: 0.8rem; background: #f8fafc; padding: 8px 12px; border-radius: 6px; margin-bottom: 6px; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; }
+    .btn-cancel { width: 100%; background: #94a3b8; color: white; font-weight: bold; padding: 8px; border: none; border-radius: 8px; cursor: pointer; margin-top: 6px; }
+    
+    .match-item { font-size: 0.8rem; background: #f8fafc; padding: 8px 12px; border-radius: 6px; margin-bottom: 6px; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+    .match-actions { display: flex; gap: 6px; }
+    .btn-action { padding: 4px 8px; border: none; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
+    .btn-edit { background-color: #fde047; color: #713f12; }
+    .btn-delete { background-color: #fca5a5; color: #991b1b; }
+
     .alert { padding: 12px; background: #fffbe3; color: #854d0e; border: 1px solid #fef08a; border-radius: 8px; font-size: 0.85rem; }
   </style>
 </head>
@@ -46,7 +54,7 @@
 <div class="container">
   <header>
     <h1>⚡ Motor de Pronósticos Deportivos</h1>
-    <p class="sub">Registra estadísticas de partidos por liga para calcular proyecciones automáticas.</p>
+    <p class="sub">Simulación de partidos con interacción mutua de estadísticas.</p>
   </header>
 
   <!-- SELECCIÓN DE LIGA -->
@@ -60,11 +68,11 @@
   </div>
 
   <div class="nav">
-    <button id="btnTab1" class="active" onclick="switchTab('pronostico')">🎯 Generar Pronóstico</button>
-    <button id="btnTab2" onclick="switchTab('registrar')">📝 Registrar Partido Manual</button>
+    <button id="btnTab1" class="active" onclick="switchTab('pronostico')">🎯 Simular Partido</button>
+    <button id="btnTab2" onclick="switchTab('registrar')">📝 Registrar / Editar Partido</button>
   </div>
 
-  <!-- TAB PRONÓSTICO -->
+  <!-- TAB PRONÓSTICO Y SIMULACIÓN -->
   <div id="tabPronostico">
     <div class="grid-2">
       <div>
@@ -79,9 +87,9 @@
     <div id="forecastResults"></div>
   </div>
 
-  <!-- TAB REGISTRAR -->
+  <!-- TAB REGISTRAR Y EDITAR -->
   <div id="tabRegistrar" style="display:none;">
-    <form onsubmit="addMatch(event)">
+    <form onsubmit="saveMatch(event)">
       <div class="grid-2">
         <div>
           <label>Local</label>
@@ -99,23 +107,23 @@
           
           <div class="field-group">
             <label>Goles</label>
-            <input type="number" id="hGoals" value="3" required>
+            <input type="number" id="hGoals" value="0" min="0" required>
           </div>
           <div class="field-group">
             <label>Remates Totales</label>
-            <input type="number" id="hShots" value="18" required>
+            <input type="number" id="hShots" value="0" min="0" required>
           </div>
           <div class="field-group">
             <label>Remates a Puerta</label>
-            <input type="number" id="hSot" value="8" required>
+            <input type="number" id="hSot" value="0" min="0" required>
           </div>
           <div class="field-group">
             <label>Córners</label>
-            <input type="number" id="hCorners" value="5" required>
+            <input type="number" id="hCorners" value="0" min="0" required>
           </div>
           <div class="field-group">
             <label>% Posesión</label>
-            <input type="number" id="hPoss" value="52" required>
+            <input type="number" id="hPoss" value="50" min="0" max="100" required>
           </div>
         </div>
 
@@ -124,35 +132,36 @@
           
           <div class="field-group">
             <label>Goles</label>
-            <input type="number" id="aGoals" value="0" required>
+            <input type="number" id="aGoals" value="0" min="0" required>
           </div>
           <div class="field-group">
             <label>Remates Totales</label>
-            <input type="number" id="aShots" value="6" required>
+            <input type="number" id="aShots" value="0" min="0" required>
           </div>
           <div class="field-group">
             <label>Remates a Puerta</label>
-            <input type="number" id="aSot" value="2" required>
+            <input type="number" id="aSot" value="0" min="0" required>
           </div>
           <div class="field-group">
             <label>Córners</label>
-            <input type="number" id="aCorners" value="3" required>
+            <input type="number" id="aCorners" value="0" min="0" required>
           </div>
           <div class="field-group">
             <label>% Posesión</label>
-            <input type="number" id="aPoss" value="48" required>
+            <input type="number" id="aPoss" value="50" min="0" max="100" required>
           </div>
         </div>
       </div>
 
-      <button type="submit" class="btn-submit">💾 Guardar Partido en la Base de Datos</button>
+      <button type="submit" id="btnSubmit" class="btn-submit">💾 Guardar Partido en la Base de Datos</button>
+      <button type="button" id="btnCancel" class="btn-cancel" style="display:none;" onclick="cancelEdit()">Cancelar Edición</button>
     </form>
   </div>
 
-  <!-- HISTORIAL -->
+  <!-- HISTORIAL DE PARTIDOS -->
   <div style="margin-top:24px; border-top:1px solid #e0f2fe; padding-top:12px;">
     <label>Partidos Guardados en esta Liga (<span id="matchCount">0</span>)</label>
-    <div id="matchList" style="max-height:150px; overflow-y:auto; margin-top:8px;"></div>
+    <div id="matchList" style="max-height:220px; overflow-y:auto; margin-top:8px;"></div>
   </div>
 </div>
 
@@ -180,6 +189,7 @@
 
   let currentLeague = "laliga";
   let matches = JSON.parse(localStorage.getItem("pronosticos_data_v2") || "[]");
+  let editMatchId = null;
 
   function init() {
     updateTeamSelects();
@@ -189,6 +199,7 @@
 
   function changeLeague() {
     currentLeague = document.getElementById("leagueSelect").value;
+    cancelEdit();
     updateTeamSelects();
     renderHistory();
     calcForecast();
@@ -216,13 +227,14 @@
     document.getElementById("btnTab2").className = tab === 'registrar' ? 'active' : '';
   }
 
-  function addMatch(e) {
+  function saveMatch(e) {
     e.preventDefault();
     const home = document.getElementById("formHome").value;
     const away = document.getElementById("formAway").value;
     if (home === away) return alert("Selecciona dos equipos diferentes.");
 
-    const match = {
+    const matchData = {
+      id: editMatchId || Date.now(),
       league: currentLeague,
       home, away,
       hGoals: +document.getElementById("hGoals").value,
@@ -237,11 +249,70 @@
       aPoss: +document.getElementById("aPoss").value
     };
 
-    matches.unshift(match);
+    if (editMatchId) {
+      const index = matches.findIndex(m => m.id === editMatchId);
+      if (index !== -1) matches[index] = matchData;
+      alert("¡Partido actualizado correctamente!");
+    } else {
+      matches.unshift(matchData);
+      alert("¡Partido registrado con éxito!");
+    }
+
+    localStorage.setItem("pronosticos_data_v2", JSON.stringify(matches));
+    cancelEdit();
+    renderHistory();
+    calcForecast();
+  }
+
+  function editMatch(id) {
+    const match = matches.find(m => m.id === id);
+    if (!match) return;
+
+    editMatchId = id;
+    switchTab('registrar');
+
+    document.getElementById("formHome").value = match.home;
+    document.getElementById("formAway").value = match.away;
+    document.getElementById("hGoals").value = match.hGoals;
+    document.getElementById("hShots").value = match.hShots;
+    document.getElementById("hSot").value = match.hSot;
+    document.getElementById("hCorners").value = match.hCorners;
+    document.getElementById("hPoss").value = match.hPoss;
+
+    document.getElementById("aGoals").value = match.aGoals;
+    document.getElementById("aShots").value = match.aShots;
+    document.getElementById("aSot").value = match.aSot;
+    document.getElementById("aCorners").value = match.aCorners;
+    document.getElementById("aPoss").value = match.aPoss;
+
+    document.getElementById("btnSubmit").innerText = "🔄 Actualizar Partido";
+    document.getElementById("btnCancel").style.display = "block";
+  }
+
+  function cancelEdit() {
+    editMatchId = null;
+    document.getElementById("btnSubmit").innerText = "💾 Guardar Partido en la Base de Datos";
+    document.getElementById("btnCancel").style.display = "none";
+    
+    document.getElementById("hGoals").value = 0;
+    document.getElementById("hShots").value = 0;
+    document.getElementById("hSot").value = 0;
+    document.getElementById("hCorners").value = 0;
+    document.getElementById("hPoss").value = 50;
+    document.getElementById("aGoals").value = 0;
+    document.getElementById("aShots").value = 0;
+    document.getElementById("aSot").value = 0;
+    document.getElementById("aCorners").value = 0;
+    document.getElementById("aPoss").value = 50;
+  }
+
+  function deleteMatch(id) {
+    if (!confirm("¿Seguro que deseas eliminar este partido?")) return;
+    
+    matches = matches.filter(m => m.id !== id);
     localStorage.setItem("pronosticos_data_v2", JSON.stringify(matches));
     renderHistory();
     calcForecast();
-    alert("¡Partido registrado con éxito!");
   }
 
   function renderHistory() {
@@ -256,8 +327,15 @@
     
     list.innerHTML = leagueMatches.map(m => `
       <div class="match-item">
-        <span><b>${m.home}</b> ${m.hGoals} - ${m.aGoals} <b>${m.away}</b></span>
-        <span>Rem: ${m.hShots}-${m.aShots} | Córners: ${m.hCorners}-${m.aCorners}</span>
+        <div>
+          <b>${m.home}</b> ${m.hGoals} - ${m.aGoals} <b>${m.away}</b>
+          <br>
+          <span style="font-size:0.75rem; color:#64748b;">Rem: ${m.hShots}-${m.aShots} | Córners: ${m.hCorners}-${m.aCorners}</span>
+        </div>
+        <div class="match-actions">
+          <button class="btn-action btn-edit" onclick="editMatch(${m.id})">Editar</button>
+          <button class="btn-action btn-delete" onclick="deleteMatch(${m.id})">Borrar</button>
+        </div>
       </div>
     `).join("");
   }
@@ -267,38 +345,72 @@
     const fVisit = document.getElementById("fVisit").value;
     const res = document.getElementById("forecastResults");
 
+    if (fLocal === fVisit) {
+      res.innerHTML = `<div class="alert">Por favor selecciona dos equipos diferentes para simular el partido.</div>`;
+      return;
+    }
+
     const leagueMatches = matches.filter(m => m.league === currentLeague);
     
-    // Partidos donde el equipo seleccionado jugó de Local o Visitante
-    const homeM = leagueMatches.filter(m => m.home === fLocal);
-    const awayM = leagueMatches.filter(m => m.away === fVisit);
+    // Partidos registrados del Local (como local) y del Visitante (como visitante)
+    const homeMatches = leagueMatches.filter(m => m.home === fLocal);
+    const awayMatches = leagueMatches.filter(m => m.away === fVisit);
 
-    if (!homeM.length && !awayM.length) {
+    if (!homeMatches.length || !awayMatches.length) {
       res.innerHTML = `
         <div class="alert">
-          Falta información. Ingresa al menos 1 partido registrado de <b>${fLocal}</b> o de <b>${fVisit}</b> en esta liga.
+          Para simular el partido se requieren datos registrados de <b>${fLocal}</b> como local Y de <b>${fVisit}</b> como visitante.
         </div>`;
       return;
     }
 
-    // Promedios Local (si no hay datos, da 0)
-    const expGoalsL = homeM.length ? (homeM.reduce((a, b) => a + b.hGoals, 0) / homeM.length).toFixed(1) : "-";
-    const expShotsL = homeM.length ? (homeM.reduce((a, b) => a + b.hShots, 0) / homeM.length).toFixed(1) : "-";
-    const expSotL = homeM.length ? (homeM.reduce((a, b) => a + b.hSot, 0) / homeM.length).toFixed(1) : "-";
-    const expCornL = homeM.length ? (homeM.reduce((a, b) => a + b.hCorners, 0) / homeM.length).toFixed(1) : "-";
-    const expPossL = homeM.length ? (homeM.reduce((a, b) => a + b.hPoss, 0) / homeM.length).toFixed(0) + "%" : "-";
+    // Promedios Local
+    const avgHomeGoalsScored = homeMatches.reduce((a, b) => a + b.hGoals, 0) / homeMatches.length;
+    const avgHomeGoalsConceded = homeMatches.reduce((a, b) => a + b.aGoals, 0) / homeMatches.length;
+    const avgHomeShots = homeMatches.reduce((a, b) => a + b.hShots, 0) / homeMatches.length;
+    const avgHomeShotsConceded = homeMatches.reduce((a, b) => a + b.aShots, 0) / homeMatches.length;
+    const avgHomeSot = homeMatches.reduce((a, b) => a + b.hSot, 0) / homeMatches.length;
+    const avgHomeCorners = homeMatches.reduce((a, b) => a + b.hCorners, 0) / homeMatches.length;
+    const avgHomeCornersConceded = homeMatches.reduce((a, b) => a + b.aCorners, 0) / homeMatches.length;
+    const avgHomePoss = homeMatches.reduce((a, b) => a + b.hPoss, 0) / homeMatches.length;
 
-    // Promedios Visitante (si no hay datos, da 0)
-    const expGoalsV = awayM.length ? (awayM.reduce((a, b) => a + b.aGoals, 0) / awayM.length).toFixed(1) : "-";
-    const expShotsV = awayM.length ? (awayM.reduce((a, b) => a + b.aShots, 0) / awayM.length).toFixed(1) : "-";
-    const expSotV = awayM.length ? (awayM.reduce((a, b) => a + b.aSot, 0) / awayM.length).toFixed(1) : "-";
-    const expCornV = awayM.length ? (awayM.reduce((a, b) => a + b.aCorners, 0) / awayM.length).toFixed(1) : "-";
-    const expPossV = awayM.length ? (awayM.reduce((a, b) => a + b.aPoss, 0) / awayM.length).toFixed(0) + "%" : "-";
+    // Promedios Visitante
+    const avgAwayGoalsScored = awayMatches.reduce((a, b) => a + b.aGoals, 0) / awayMatches.length;
+    const avgAwayGoalsConceded = awayMatches.reduce((a, b) => a + b.hGoals, 0) / awayMatches.length;
+    const avgAwayShots = awayMatches.reduce((a, b) => a + b.aShots, 0) / awayMatches.length;
+    const avgAwayShotsConceded = awayMatches.reduce((a, b) => a + b.hShots, 0) / awayMatches.length;
+    const avgAwaySot = awayMatches.reduce((a, b) => a + b.aSot, 0) / awayMatches.length;
+    const avgAwayCorners = awayMatches.reduce((a, b) => a + b.aCorners, 0) / awayMatches.length;
+    const avgAwayCornersConceded = awayMatches.reduce((a, b) => a + b.hCorners, 0) / awayMatches.length;
+    const avgAwayPoss = awayMatches.reduce((a, b) => a + b.aPoss, 0) / awayMatches.length;
+
+    // --- SIMULACIÓN 1: POSESIÓN DINÁMICA DE BALÓN (Total suma 100%) ---
+    const totalPossFactor = avgHomePoss + avgAwayPoss;
+    const simHomePoss = Math.round((avgHomePoss / totalPossFactor) * 100);
+    const simAwayPoss = 100 - simHomePoss;
+
+    // --- SIMULACIÓN 2: GOLES ESPERADOS (xG Cruzados Ataque/Defensa) ---
+    const simHomeGoals = ((avgHomeGoalsScored + avgAwayGoalsConceded) / 2).toFixed(1);
+    const simAwayGoals = ((avgAwayGoalsScored + avgHomeGoalsConceded) / 2).toFixed(1);
+
+    // --- SIMULACIÓN 3: REMATES Y CÓRNERS INTERACTIVOS ---
+    // Ajustados combinando producción propia, lo que el rival concede y la posesión estimada
+    const homeShotRatio = simHomePoss / 50;
+    const awayShotRatio = simAwayPoss / 50;
+
+    const simHomeShots = (((avgHomeShots + avgAwayShotsConceded) / 2) * homeShotRatio).toFixed(1);
+    const simAwayShots = (((avgAwayShots + avgHomeShotsConceded) / 2) * awayShotRatio).toFixed(1);
+
+    const simHomeSot = ((avgHomeSot + (avgAwayShotsConceded * 0.35)) / 2 * homeShotRatio).toFixed(1);
+    const simAwaySot = ((avgAwaySot + (avgHomeShotsConceded * 0.35)) / 2 * awayShotRatio).toFixed(1);
+
+    const simHomeCorners = (((avgHomeCorners + avgAwayCornersConceded) / 2) * homeShotRatio).toFixed(1);
+    const simAwayCorners = (((avgAwayCorners + avgHomeCornersConceded) / 2) * awayShotRatio).toFixed(1);
 
     res.innerHTML = `
       <div class="card">
         <h3 style="color:#0369a1; font-size:1rem; border-bottom:1px solid #bae6fd; padding-bottom:6px;">
-          Proyección: ${fLocal} vs ${fVisit}
+          🎮 Simulación del Partido: ${fLocal} vs ${fVisit}
         </h3>
         <table class="forecast-table">
           <thead>
@@ -310,32 +422,38 @@
           </thead>
           <tbody>
             <tr>
-              <td class="val-team">${expGoalsL}</td>
-              <td class="metric-name">Goles Esperados</td>
-              <td class="val-team">${expGoalsV}</td>
+              <td class="val-team">${simHomeGoals}</td>
+              <td class="metric-name">Goles Esperados (xG)</td>
+              <td class="val-team">${simAwayGoals}</td>
             </tr>
             <tr>
-              <td class="val-team">${expShotsL}</td>
+              <td class="val-team">${simHomeShots}</td>
               <td class="metric-name">Remates Totales</td>
-              <td class="val-team">${expShotsV}</td>
+              <td class="val-team">${simAwayShots}</td>
             </tr>
             <tr>
-              <td class="val-team">${expSotL}</td>
+              <td class="val-team">${simHomeSot}</td>
               <td class="metric-name">Remates a Puerta</td>
-              <td class="val-team">${expSotV}</td>
+              <td class="val-team">${simAwaySot}</td>
             </tr>
             <tr>
-              <td class="val-team">${expCornL}</td>
+              <td class="val-team">${simHomeCorners}</td>
               <td class="metric-name">Córners Estimados</td>
-              <td class="val-team">${expCornV}</td>
+              <td class="val-team">${simAwayCorners}</td>
             </tr>
             <tr>
-              <td class="val-team">${expPossL}</td>
-              <td class="metric-name">Posesión Estimada</td>
-              <td class="val-team">${expPossV}</td>
+              <td class="val-team">${simHomePoss}%</td>
+              <td class="metric-name">Posesión de Balón</td>
+              <td class="val-team">${simAwayPoss}%</td>
             </tr>
           </tbody>
         </table>
+
+        <div class="summary-box">
+          <b>📊 Análisis del Partido:</b><br>
+          En este enfrentamiento, la simulación asigna un <b>${simHomePoss}%</b> de posesión a ${fLocal} y un <b>${simAwayPoss}%</b> a ${fVisit}.<br>
+          Debido al cruce defensivo y ofensivo de ambos, se proyecta un partido con <b>${(parseFloat(simHomeShots) + parseFloat(simAwayShots)).toFixed(1)}</b> remates en total y una expectativa de <b>${simHomeGoals} - ${simAwayGoals}</b> en el marcador.
+        </div>
       </div>`;
   }
 
