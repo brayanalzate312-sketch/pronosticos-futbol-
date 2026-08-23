@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Motor de Pronósticos Deportivos - Rangos y Margen de Error</title>
+  <title>Motor de Pronósticos Deportivos - Sistema Seguro</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
     body { background-color: #f0f9ff; color: #0f172a; padding: 20px; display: flex; justify-content: center; }
@@ -42,6 +42,10 @@
     .btn-submit:hover { background: #0369a1; }
     .btn-cancel { width: 100%; background: #94a3b8; color: white; font-weight: bold; padding: 8px; border: none; border-radius: 8px; cursor: pointer; margin-top: 6px; }
     
+    .backup-bar { display: flex; gap: 8px; margin-top: 12px; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; }
+    .btn-backup { flex: 1; padding: 8px; font-size: 0.78rem; font-weight: bold; border-radius: 6px; border: 1px solid #cbd5e1; cursor: pointer; background: #ffffff; color: #334155; }
+    .btn-backup:hover { background: #f1f5f9; }
+
     .match-item { font-size: 0.8rem; background: #f8fafc; padding: 8px 12px; border-radius: 6px; margin-bottom: 6px; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
     .match-actions { display: flex; gap: 6px; }
     .btn-action { padding: 4px 8px; border: none; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
@@ -56,7 +60,7 @@
 <div class="container">
   <header>
     <h1>⚡ Motor de Pronósticos Deportivos</h1>
-    <p class="sub">Simulación avanzada con intervalos Mín/Máx y Margen de Error.</p>
+    <p class="sub">Simulación avanzada con copia de seguridad local.</p>
   </header>
 
   <!-- SELECCIÓN DE LIGA -->
@@ -160,9 +164,16 @@
     </form>
   </div>
 
-  <!-- HISTORIAL DE PARTIDOS -->
+  <!-- HISTORIAL Y COPIAS DE SEGURIDAD -->
   <div style="margin-top:24px; border-top:1px solid #e0f2fe; padding-top:12px;">
     <label>Partidos Guardados en esta Liga (<span id="matchCount">0</span>)</label>
+    
+    <div class="backup-bar">
+      <button class="btn-backup" onclick="exportData()">📥 Descargar Respaldo (Guardar datos)</button>
+      <button class="btn-backup" onclick="document.getElementById('importFile').click()">📤 Cargar Respaldo (Recuperar datos)</button>
+      <input type="file" id="importFile" style="display:none;" accept=".json" onchange="importData(event)">
+    </div>
+
     <div id="matchList" style="max-height:220px; overflow-y:auto; margin-top:8px;"></div>
   </div>
 </div>
@@ -342,7 +353,42 @@
     `).join("");
   }
 
-  // Función de apoyo para calcular rangos Mín - Máx
+  // --- FUNCIONES DE RESPALDO Y RECUPERACIÓN ---
+  function exportData() {
+    if (!matches.length) return alert("No hay datos para exportar.");
+    const blob = new Blob([JSON.stringify(matches, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `respaldo_partidos_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function importData(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(event) {
+      try {
+        const imported = JSON.parse(event.target.result);
+        if (Array.isArray(imported)) {
+          matches = imported;
+          localStorage.setItem("pronosticos_data_v2", JSON.stringify(matches));
+          alert("¡Datos restaurados con éxito!");
+          renderHistory();
+          calcForecast();
+        } else {
+          alert("El archivo no tiene el formato correcto.");
+        }
+      } catch (err) {
+        alert("Error al leer el archivo de respaldo.");
+      }
+    };
+    reader.readAsText(file);
+  }
+
   function getRange(val, factor = 0.25, isInteger = false) {
     const num = parseFloat(val);
     let min = Math.max(0, num - num * factor);
@@ -423,7 +469,6 @@
 
     // 4. CÁLCULO DE MARGEN DE ERROR DEL PRONÓSTICO
     const totalSample = homeMatches.length + awayMatches.length;
-    // Con 2 partidos de muestra = ~25% de error; con 10+ partidos = ~6-8% de error
     const marginOfError = Math.max(5, Math.round(35 / Math.sqrt(totalSample))).toFixed(0);
 
     const totalMatchShots = (parseFloat(simHomeShots) + parseFloat(simAwayShots)).toFixed(1);
